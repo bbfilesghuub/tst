@@ -1,0 +1,355 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Cloud Metadata Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+        }
+        
+        h2 {
+            color: #4285f4;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .endpoint-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .endpoint-box {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            flex: 1;
+            min-width: 300px;
+            border-left: 4px solid #4285f4;
+        }
+        
+        .endpoint-box h3 {
+            margin-bottom: 10px;
+            color: #555;
+        }
+        
+        .code {
+            background-color: #f1f3f4;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            word-break: break-all;
+        }
+        
+        .btn {
+            background-color: #4285f4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn:hover {
+            background-color: #3367d6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(66, 133, 244, 0.3);
+        }
+        
+        .btn:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .result-container {
+            margin-top: 20px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4285f4;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #response {
+            background-color: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            max-height: 500px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+            display: none;
+        }
+        
+        .error {
+            background-color: #ffebee;
+            border: 1px solid #ffcdd2;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+        }
+        
+        .instructions {
+            background-color: #e8f0fe;
+            border-left: 4px solid #4285f4;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .instructions h3 {
+            color: #4285f4;
+            margin-bottom: 10px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        @media (max-width: 768px) {
+            .endpoint-box {
+                min-width: 100%;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Google Cloud Metadata Viewer</h1>
+            <p class="subtitle">Fetch and display metadata from Google Cloud Metadata Server</p>
+        </header>
+        
+        <div class="card">
+            <h2>About This Tool</h2>
+            <p>This tool makes a request to the Google Cloud Metadata server to retrieve instance metadata. The request includes the required <span class="code">Metadata-Flavor: Google</span> header as specified by Google Cloud documentation.</p>
+            
+            <div class="instructions">
+                <h3>Important Note</h3>
+                <p>This tool will only work when running on a Google Cloud Platform (GCP) instance (Compute Engine, App Engine, Cloud Run, etc.). The metadata server is only accessible from within GCP services.</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Metadata Endpoint</h2>
+            <div class="endpoint-info">
+                <div class="endpoint-box">
+                    <h3>Request URL</h3>
+                    <p class="code">http://metadata.google.internal/computeMetadata/v1beta1/</p>
+                </div>
+                <div class="endpoint-box">
+                    <h3>Required Header</h3>
+                    <p class="code">Metadata-Flavor: Google</p>
+                </div>
+            </div>
+            
+            <button id="fetchBtn" class="btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Fetch Metadata
+            </button>
+            
+            <div class="loading" id="loadingIndicator">
+                <div class="loading-spinner"></div>
+                <p>Requesting metadata from Google Cloud Metadata Server...</p>
+            </div>
+            
+            <div class="result-container">
+                <div id="response"></div>
+                <div id="error" class="error"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>How It Works</h2>
+            <p>When you click the "Fetch Metadata" button, this page:</p>
+            <ol>
+                <li>Sends a GET request to <span class="code">http://metadata.google.internal/computeMetadata/v1beta1/</span></li>
+                <li>Adds the required header <span class="code">Metadata-Flavor: Google</span></li>
+                <li>Displays the response from the metadata server</li>
+                <li>If running outside GCP, shows an error message</li>
+            </ol>
+            <p>You can modify the URL to access specific metadata. For example:</p>
+            <ul>
+                <li><span class="code">/computeMetadata/v1beta1/instance/id</span> - Instance ID</li>
+                <li><span class="code">/computeMetadata/v1beta1/project/project-id</span> - Project ID</li>
+                <li><span class="code">/computeMetadata/v1beta1/instance/zone</span> - Instance zone</li>
+            </ul>
+        </div>
+        
+        <footer>
+            <p>Google Cloud Metadata Viewer | This tool only works within Google Cloud Platform</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const fetchBtn = document.getElementById('fetchBtn');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const responseDiv = document.getElementById('response');
+            const errorDiv = document.getElementById('error');
+            
+            fetchBtn.addEventListener('click', fetchMetadata);
+            
+            async function fetchMetadata() {
+                // Reset display
+                responseDiv.style.display = 'none';
+                errorDiv.style.display = 'none';
+                loadingIndicator.style.display = 'block';
+                fetchBtn.disabled = true;
+                
+                try {
+                    // Make the request to the metadata server
+                    const url = 'http://metadata.google.internal/computeMetadata/v1beta1/';
+                    
+                    const response = await fetch(url, {
+                        headers: {
+                            'Metadata-Flavor': 'Google'
+                        },
+                        mode: 'no-cors'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status} - ${response.statusText}`);
+                    }
+                    
+                    const text = await response.text();
+                    
+                    // Display the response
+                    responseDiv.textContent = text || 'No content returned from metadata server';
+                    responseDiv.style.display = 'block';
+                    
+                } catch (error) {
+                    // Handle errors
+                    let errorMessage = error.message;
+                    
+                    // Provide more user-friendly error messages for common cases
+                    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                        errorMessage = 'Unable to connect to the metadata server. This usually means you are not running on Google Cloud Platform. The metadata server is only accessible from within GCP services (Compute Engine, App Engine, Cloud Run, etc.).';
+                    }
+                    
+                    errorDiv.innerHTML = `<strong>Error:</strong> ${errorMessage}`;
+                    errorDiv.style.display = 'block';
+                    
+                } finally {
+                    // Hide loading indicator
+                    loadingIndicator.style.display = 'none';
+                    fetchBtn.disabled = false;
+                }
+            }
+            
+            // Try to detect if we're likely running on GCP by checking for common GCP environment indicators
+            function detectGCPEnvironment() {
+                const gcpIndicators = [
+                    window.location.hostname.includes('.googleapis.com'),
+                    window.location.hostname.includes('.appspot.com'),
+                    window.location.hostname.includes('.run.app'),
+                    document.referrer.includes('google.com') || document.referrer.includes('googleapis.com')
+                ];
+                
+                return gcpIndicators.some(indicator => indicator === true);
+            }
+            
+            // Show a hint if we detect the user might not be on GCP
+            if (!detectGCPEnvironment() && !window.location.hostname.includes('localhost')) {
+                const instructions = document.querySelector('.instructions');
+                instructions.innerHTML += `
+                    <p style="margin-top: 10px; color: #d32f2f; font-weight: bold;">
+                        Note: You appear to be running outside of Google Cloud Platform. The metadata request will likely fail.
+                    </p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
